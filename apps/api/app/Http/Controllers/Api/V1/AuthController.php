@@ -57,6 +57,22 @@ class AuthController extends Controller
             'created_at' => now(),
         ]);
 
+        $activeOrganizations = $user->is_owner 
+            ? \App\Models\Organization::where('status', 'active')->get(['id', 'name', 'slug', 'code', 'status'])
+            : $user->getActiveOrganizations()->map(fn ($org) => [
+                'id' => $org->id,
+                'name' => $org->name,
+                'slug' => $org->slug,
+                'code' => $org->code,
+                'status' => $org->status,
+                'role' => $org->pivot->role_id ? \App\Models\Role::find($org->pivot->role_id)?->name : null,
+            ]);
+
+        // If user has no memberships yet, fallback to primary organization
+        if ($activeOrganizations->isEmpty() && $user->organization) {
+            $activeOrganizations = collect([$user->organization]);
+        }
+
         return $this->success([
             'token' => $token,
             'user' => [
@@ -65,6 +81,7 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'is_owner' => $user->is_owner,
                 'organization' => $user->organization,
+                'organizations' => $activeOrganizations,
                 'roles' => $user->roles->pluck('slug'),
                 'permissions' => $user->roles->flatMap->permissions->pluck('slug')->unique()->values(),
             ],
@@ -79,7 +96,7 @@ class AuthController extends Controller
             $user->currentAccessToken()->delete();
 
             AuditLog::create([
-                'organization_id' => $user->organization_id,
+                'organization_id' => \App\Services\TenantContext::getTenantId() ?? $user->organization_id,
                 'user_id' => $user->id,
                 'action' => 'auth.logout',
                 'subject_type' => User::class,
@@ -96,15 +113,44 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         $user = $request->user()->load(['organization', 'roles.permissions']);
+        $currentOrg = \App\Services\TenantContext::getTenant() ?? $user->organization;
+
+        $activeOrganizations = $user->is_owner 
+            ? \App\Models\Organization::where('status', 'active')->get(['id', 'name', 'slug', 'code', 'status'])
+            : $user->getActiveOrganizations()->map(fn ($org) => [
+                'id' => $org->id,
+                'name' => $org->name,
+                'slug' => $org->slug,
+                'code' => $org->code,
+                'status' => $org->status,
+                'role' => $org->pivot->role_id ? \App\Models\Role::find($org->pivot->role_id)?->name : null,
+            ]);
+
+        if ($activeOrganizations->isEmpty() && $user->organization) {
+            $activeOrganizations = collect([$user->organization]);
+        }
+
+        // Calculate permissions for current organization context
+        $effectivePermissions = $user->roles()
+            ->where(function ($q) use ($currentOrg) {
+                if ($currentOrg) {
+                    $q->where('roles.organization_id', $currentOrg->id)
+                      ->orWhereNull('roles.organization_id');
+                }
+            })
+            ->with('permissions')
+            ->get()
+            ->flatMap->permissions->pluck('slug')->unique()->values();
 
         return $this->success([
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
             'is_owner' => $user->is_owner,
-            'organization' => $user->organization,
+            'organization' => $currentOrg,
+            'organizations' => $activeOrganizations,
             'roles' => $user->roles->pluck('slug'),
-            'permissions' => $user->roles->flatMap->permissions->pluck('slug')->unique()->values(),
+            'permissions' => $effectivePermissions,
         ], 'Authenticated user profile retrieved.');
     }
 }

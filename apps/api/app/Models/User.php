@@ -36,18 +36,42 @@ class User extends Authenticatable
         ];
     }
 
+    public function memberships(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(OrganizationMembership::class);
+    }
+
+    public function organizations(): BelongsToMany
+    {
+        return $this->belongsToMany(Organization::class, 'organization_memberships')
+            ->withPivot('role_id', 'status', 'joined_at')
+            ->withTimestamps();
+    }
+
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'role_user');
     }
 
-    public function hasPermission(string $permissionSlug): bool
+    public function getActiveOrganizations()
+    {
+        return $this->organizations()->wherePivot('status', 'active')->get();
+    }
+
+    public function hasPermission(string $permissionSlug, ?int $organizationId = null): bool
     {
         if ($this->is_owner) {
             return true;
         }
 
+        $orgId = $organizationId ?? \App\Services\TenantContext::getTenantId() ?? $this->organization_id;
+
+        // Check if user has permission through organization roles
         return $this->roles()
+            ->where(function ($query) use ($orgId) {
+                $query->where('roles.organization_id', $orgId)
+                    ->orWhereNull('roles.organization_id');
+            })
             ->whereHas('permissions', function ($query) use ($permissionSlug) {
                 $query->where('slug', $permissionSlug);
             })

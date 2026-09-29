@@ -10,13 +10,19 @@ export const apiClient = axios.create({
   },
 });
 
-// Request interceptor to attach bearer token
+// Request interceptor to attach bearer token and active organization context
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('auth_token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    const activeOrgId = localStorage.getItem('active_org_id');
+    if (activeOrgId && config.headers) {
+      config.headers['X-Organization-Id'] = activeOrgId;
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

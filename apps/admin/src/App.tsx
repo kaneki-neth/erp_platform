@@ -9,6 +9,9 @@ import { DashboardOverview } from './pages/dashboard/DashboardOverview';
 import { UsersPage } from './pages/users/UsersPage';
 import { RolesPage } from './pages/roles/RolesPage';
 import { ModulesPage } from './pages/modules/ModulesPage';
+import { OrganizationsPage } from './pages/organizations/OrganizationsPage';
+import { OrganizationSettingsPage } from './pages/organizations/OrganizationSettingsPage';
+import { OrganizationMembersPage } from './pages/organizations/OrganizationMembersPage';
 import { AccessDeniedPage } from './pages/error/AccessDeniedPage';
 
 const queryClient = new QueryClient({
@@ -34,6 +37,13 @@ export const App: React.FC = () => {
             <Route element={<ProtectedRoute />}>
               <Route element={<DashboardLayout />}>
                 <Route path="/" element={<DashboardOverview />} />
+                
+                {/* Organization & Multi-Tenancy Routes */}
+                <Route path="/organizations" element={<OrganizationsPage />} />
+                <Route path="/organization/settings" element={<OrganizationSettingsPage />} />
+                <Route path="/organization/members" element={<OrganizationMembersPage />} />
+
+                {/* Platform Admin Routes */}
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/roles" element={<RolesPage />} />
                 <Route path="/modules" element={<ModulesPage />} />

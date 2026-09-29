@@ -75,9 +75,27 @@ class PlatformSeeder extends Seeder
         // 2. Seed System Permissions
         $permissions = [
             // Organizations
-            ['slug' => 'organizations.view', 'name' => 'View Organization', 'module_key' => 'core', 'description' => 'View organization profile and settings'],
-            ['slug' => 'organizations.update', 'name' => 'Update Organization', 'module_key' => 'core', 'description' => 'Update organization profile and settings'],
-            
+            ['slug' => 'organizations.view', 'name' => 'View Organization', 'module_key' => 'core', 'description' => 'View organization profile and directory'],
+            ['slug' => 'organizations.create', 'name' => 'Create Organization', 'module_key' => 'core', 'description' => 'Create new tenant organizations'],
+            ['slug' => 'organizations.update', 'name' => 'Update Organization', 'module_key' => 'core', 'description' => 'Modify organization profile and details'],
+            ['slug' => 'organizations.delete', 'name' => 'Delete Organization', 'module_key' => 'core', 'description' => 'Remove or deactivate tenant organizations'],
+            ['slug' => 'organizations.manage', 'name' => 'Manage Organizations', 'module_key' => 'core', 'description' => 'Full administrative control over tenant organizations and statuses'],
+
+            // Organization Members
+            ['slug' => 'organizations.members.view', 'name' => 'View Members', 'module_key' => 'core', 'description' => 'View organization member roster'],
+            ['slug' => 'organizations.members.create', 'name' => 'Add Members', 'module_key' => 'core', 'description' => 'Add or invite members to organization'],
+            ['slug' => 'organizations.members.update', 'name' => 'Update Members', 'module_key' => 'core', 'description' => 'Modify member status and role assignments'],
+            ['slug' => 'organizations.members.delete', 'name' => 'Remove Members', 'module_key' => 'core', 'description' => 'Remove members from organization'],
+
+            // Organization Settings
+            ['slug' => 'organizations.settings.view', 'name' => 'View Settings', 'module_key' => 'core', 'description' => 'View organization configuration and preferences'],
+            ['slug' => 'organizations.settings.update', 'name' => 'Update Settings', 'module_key' => 'core', 'description' => 'Modify organization localization and settings'],
+
+            // Organization Invitations
+            ['slug' => 'organizations.invitations.view', 'name' => 'View Invitations', 'module_key' => 'core', 'description' => 'View pending member invitations'],
+            ['slug' => 'organizations.invitations.create', 'name' => 'Create Invitations', 'module_key' => 'core', 'description' => 'Generate member invitation links'],
+            ['slug' => 'organizations.invitations.cancel', 'name' => 'Cancel Invitations', 'module_key' => 'core', 'description' => 'Revoke pending invitations'],
+
             // Users
             ['slug' => 'users.view', 'name' => 'View Users', 'module_key' => 'core', 'description' => 'View organization user roster'],
             ['slug' => 'users.create', 'name' => 'Create Users', 'module_key' => 'core', 'description' => 'Invite or create new organization users'],
@@ -109,8 +127,18 @@ class PlatformSeeder extends Seeder
             ['slug' => 'acme'],
             [
                 'name' => 'Acme Retail Solutions',
+                'legal_name' => 'Acme Retail Enterprises Inc.',
+                'code' => 'ACM-001',
+                'description' => 'Flagship multi-store retail chain with omnichannel operations.',
                 'domain' => 'acme.local',
+                'email' => 'info@acmeretail.com',
+                'phone' => '+1 (555) 234-5678',
+                'website' => 'https://acmeretail.example.com',
+                'address' => '100 Enterprise Way, Suite 400, New York, NY 10001',
                 'status' => 'active',
+                'timezone' => 'America/New_York',
+                'locale' => 'en',
+                'currency' => 'USD',
                 'settings' => [
                     'currency' => 'USD',
                     'timezone' => 'America/New_York',
@@ -141,6 +169,8 @@ class PlatformSeeder extends Seeder
         $acmeStaffRole->permissions()->sync([
             $permissionModels['users.view']->id,
             $permissionModels['modules.view']->id,
+            $permissionModels['organizations.members.view']->id,
+            $permissionModels['organizations.settings.view']->id,
         ]);
 
         // Acme Users
@@ -166,6 +196,16 @@ class PlatformSeeder extends Seeder
         );
         $acmeStaff->roles()->sync([$acmeStaffRole->id]);
 
+        // Acme Memberships
+        \App\Models\OrganizationMembership::updateOrCreate(
+            ['user_id' => $acmeOwner->id, 'organization_id' => $orgAcme->id],
+            ['role_id' => $acmeAdminRole->id, 'status' => 'active', 'joined_at' => now()]
+        );
+        \App\Models\OrganizationMembership::updateOrCreate(
+            ['user_id' => $acmeStaff->id, 'organization_id' => $orgAcme->id],
+            ['role_id' => $acmeStaffRole->id, 'status' => 'active', 'joined_at' => now()]
+        );
+
         // Acme Enabled Modules (POS, Inventory, Purchasing)
         foreach (['pos', 'inventory', 'purchasing'] as $key) {
             $mod = Module::where('key', $key)->first();
@@ -182,8 +222,18 @@ class PlatformSeeder extends Seeder
             ['slug' => 'global'],
             [
                 'name' => 'Global Dynamics Corp',
+                'legal_name' => 'Global Dynamics International Ltd.',
+                'code' => 'GLB-001',
+                'description' => 'European supply chain and consulting holding firm.',
                 'domain' => 'global.local',
+                'email' => 'contact@globaldynamics.example.com',
+                'phone' => '+44 20 7946 0912',
+                'website' => 'https://globaldynamics.example.com',
+                'address' => '25 Bank Street, Canary Wharf, London E14 5JP',
                 'status' => 'active',
+                'timezone' => 'Europe/London',
+                'locale' => 'en',
+                'currency' => 'EUR',
                 'settings' => [
                     'currency' => 'EUR',
                     'timezone' => 'Europe/London',
@@ -211,6 +261,18 @@ class PlatformSeeder extends Seeder
             ]
         );
         $globalOwner->roles()->sync([$globalAdminRole->id]);
+
+        // Global Memberships
+        \App\Models\OrganizationMembership::updateOrCreate(
+            ['user_id' => $globalOwner->id, 'organization_id' => $orgGlobal->id],
+            ['role_id' => $globalAdminRole->id, 'status' => 'active', 'joined_at' => now()]
+        );
+
+        // Multi-tenant membership: Acme Administrator is also an Auditor in Global Dynamics
+        \App\Models\OrganizationMembership::updateOrCreate(
+            ['user_id' => $acmeOwner->id, 'organization_id' => $orgGlobal->id],
+            ['role_id' => $globalAdminRole->id, 'status' => 'active', 'joined_at' => now()]
+        );
 
         // Global Enabled Modules (CRM, Accounting)
         foreach (['crm', 'accounting'] as $key) {

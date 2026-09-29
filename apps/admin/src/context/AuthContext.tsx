@@ -1,14 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authApi, LoginCredentials } from '../api/auth';
-import { User } from '../types';
+import { organizationApi } from '../api/organizations';
+import { Organization, User } from '../types';
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
+  currentOrganization: Organization | null;
+  availableOrganizations: Organization[];
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  switchOrganization: (orgId: number) => Promise<void>;
   hasPermission: (permissionSlug: string) => boolean;
 }
 
@@ -22,6 +26,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('auth_token'));
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  const currentOrganization: Organization | null = user?.organization || null;
+  const availableOrganizations: Organization[] = user?.organizations || (user?.organization ? [user.organization] : []);
+
   useEffect(() => {
     const verifyAuth = async () => {
       if (token) {
@@ -29,11 +36,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const profile = await authApi.getMe();
           setUser(profile);
           localStorage.setItem('auth_user', JSON.stringify(profile));
+          if (profile.organization?.id) {
+            localStorage.setItem('active_org_id', profile.organization.id.toString());
+          }
         } catch {
           setToken(null);
           setUser(null);
           localStorage.removeItem('auth_token');
           localStorage.removeItem('auth_user');
+          localStorage.removeItem('active_org_id');
         }
       }
       setIsLoading(false);
@@ -50,6 +61,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.user);
       localStorage.setItem('auth_token', data.token);
       localStorage.setItem('auth_user', JSON.stringify(data.user));
+      if (data.user?.organization?.id) {
+        localStorage.setItem('active_org_id', data.user.organization.id.toString());
+      }
     } finally {
       setIsLoading(false);
     }
@@ -65,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
+      localStorage.removeItem('active_org_id');
     }
   };
 
@@ -73,8 +88,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const profile = await authApi.getMe();
       setUser(profile);
       localStorage.setItem('auth_user', JSON.stringify(profile));
+      if (profile.organization?.id) {
+        localStorage.setItem('active_org_id', profile.organization.id.toString());
+      }
     } catch (e) {
       console.error('Failed to refresh user', e);
+    }
+  };
+
+  const switchOrganization = async (orgId: number) => {
+    setIsLoading(true);
+    try {
+      await organizationApi.switchOrganization(orgId);
+      localStorage.setItem('active_org_id', orgId.toString());
+      
+      // Refresh profile to update context and effective permissions
+      const profile = await authApi.getMe();
+      setUser(profile);
+      localStorage.setItem('auth_user', JSON.stringify(profile));
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -88,7 +121,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, refreshUser, hasPermission }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        currentOrganization,
+        availableOrganizations,
+        isLoading,
+        login,
+        logout,
+        refreshUser,
+        switchOrganization,
+        hasPermission,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -101,4 +147,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
