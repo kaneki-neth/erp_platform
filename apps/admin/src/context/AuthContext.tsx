@@ -9,6 +9,7 @@ interface AuthContextType {
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  hasPermission: (permissionSlug: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -77,8 +78,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const hasPermission = (permissionSlug: string): boolean => {
+    if (!user) return false;
+    if (user.is_owner) return true;
+    if (Array.isArray(user.permissions) && user.permissions.includes(permissionSlug)) {
+      return true;
+    }
+    return false;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout, refreshUser, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );
@@ -91,3 +101,4 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+

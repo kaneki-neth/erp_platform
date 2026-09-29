@@ -34,12 +34,18 @@ Route::prefix('v1')->group(function () {
             Route::patch('current', [OrganizationController::class, 'update']);
         });
 
-        // Users CRUD
+        // Users CRUD & User-Role Assignments
+        Route::get('users/{id}/roles', [UserController::class, 'getRoles']);
+        Route::put('users/{id}/roles', [UserController::class, 'syncRoles']);
         Route::apiResource('users', UserController::class);
 
-        // Roles & Permissions
-        Route::get('roles', [RoleController::class, 'index']);
-        Route::get('permissions', [PermissionController::class, 'index']);
+        // Roles CRUD & Role-Permission Assignments
+        Route::get('roles/{id}/permissions', [RoleController::class, 'getPermissions']);
+        Route::put('roles/{id}/permissions', [RoleController::class, 'syncPermissions']);
+        Route::apiResource('roles', RoleController::class);
+
+        // Permissions
+        Route::apiResource('permissions', PermissionController::class)->only(['index', 'show']);
 
         // Module Management
         Route::prefix('modules')->group(function () {

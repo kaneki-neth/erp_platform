@@ -1,12 +1,16 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Boxes, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Users, Shield, Boxes, ShieldCheck } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export const Sidebar: React.FC = () => {
+  const { hasPermission } = useAuth();
+
   const navItems = [
-    { to: '/', label: 'Overview', icon: LayoutDashboard },
-    { to: '/users', label: 'Users & Roles', icon: Users },
-    { to: '/modules', label: 'Platform Modules', icon: Boxes },
+    { to: '/', label: 'Overview', icon: LayoutDashboard, permission: null },
+    { to: '/users', label: 'User Directory', icon: Users, permission: 'users.view' },
+    { to: '/roles', label: 'Roles & Permissions', icon: Shield, permission: 'roles.view' },
+    { to: '/modules', label: 'Platform Modules', icon: Boxes, permission: 'modules.view' },
   ];
 
   return (
@@ -18,16 +22,20 @@ export const Sidebar: React.FC = () => {
         </div>
         <div>
           <span className="font-bold text-white tracking-wide text-sm block">ERP PLATFORM</span>
-          <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Phase 0 Core</span>
+          <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Phase 1 IAM Ready</span>
         </div>
       </div>
 
       {/* Navigation */}
       <div className="flex-1 py-6 px-3 space-y-1">
         <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-          Core Administration
+          Platform Administration
         </div>
         {navItems.map((item) => {
+          if (item.permission && !hasPermission(item.permission) && !hasPermission('roles.manage')) {
+            return null;
+          }
+
           const Icon = item.icon;
           return (
             <NavLink
@@ -53,9 +61,10 @@ export const Sidebar: React.FC = () => {
       <div className="p-4 border-t border-slate-800">
         <div className="flex items-center space-x-2 text-xs text-slate-400">
           <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>Tenant Scoped API-First</span>
+          <span>IAM Centralized Access</span>
         </div>
       </div>
     </aside>
   );
 };
+

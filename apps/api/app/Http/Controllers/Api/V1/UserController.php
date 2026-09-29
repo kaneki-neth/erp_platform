@@ -18,7 +18,31 @@ class UserController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $users = User::with('roles')->paginate($request->integer('per_page', 15));
+        $authUser = $request->user();
+        if (! $authUser->is_owner && ! $authUser->hasPermission('users.view')) {
+            return $this->error('Unauthorized to view users.', 403);
+        }
+
+        $query = User::with(['roles.permissions']);
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($status = $request->input('status')) {
+            $query->where('status', $status);
+        }
+
+        if ($roleId = $request->input('role_id')) {
+            $query->whereHas('roles', function ($q) use ($roleId) {
+                $q->where('roles.id', $roleId);
+            });
+        }
+
+        $users = $query->orderBy('id', 'desc')->paginate($request->integer('per_page', 15));
 
         return $this->success($users, 'Organization users retrieved successfully.');
     }
@@ -40,6 +64,7 @@ class UserController extends Controller
                 Rule::unique('users')->where(fn ($query) => $query->where('organization_id', $tenantId)),
             ],
             'password' => ['required', 'string', 'min:8'],
+            'status' => ['nullable', 'in:active,inactive,suspended'],
             'roles' => ['nullable', 'array'],
             'roles.*' => ['exists:roles,id'],
         ]);
@@ -49,7 +74,7 @@ class UserController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'status' => 'active',
+            'status' => $validated['status'] ?? 'active',
             'is_owner' => false,
         ]);
 
@@ -63,19 +88,28 @@ class UserController extends Controller
             'action' => 'user.create',
             'subject_type' => User::class,
             'subject_id' => $user->id,
-            'metadata' => ['name' => $user->name, 'email' => $user->email],
+            'metadata' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'status' => $user->status,
+                'roles' => $validated['roles'] ?? [],
+            ],
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'created_at' => now(),
         ]);
 
-        return $this->success($user->load('roles'), 'User created successfully.', 201);
+        return $this->success($user->load('roles.permissions'), 'User created successfully.', 201);
     }
 
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
-        // Global TenantScope automatically enforces tenant isolation
-        $user = User::with('roles')->find($id);
+        $authUser = $request->user();
+        if (! $authUser->is_owner && ! $authUser->hasPermission('users.view')) {
+            return $this->error('Unauthorized to view users.', 403);
+        }
+
+        $user = User::with('roles.permissions')->find($id);
 
         if (! $user) {
             return $this->error('User not found in your organization.', 404);
@@ -111,14 +145,16 @@ class UserController extends Controller
             'roles.*' => ['exists:roles,id'],
         ]);
 
-        if (isset($validated['password'])) {
+        if (! empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
+        } else {
+            unset($validated['password']);
         }
 
         $user->update($validated);
 
-        if (isset($validated['roles'])) {
-            $user->roles()->sync($validated['roles']);
+        if (array_key_exists('roles', $validated)) {
+            $user->roles()->sync($validated['roles'] ?? []);
         }
 
         AuditLog::create([
@@ -133,7 +169,7 @@ class UserController extends Controller
             'created_at' => now(),
         ]);
 
-        return $this->success($user->load('roles'), 'User updated successfully.');
+        return $this->success($user->load('roles.permissions'), 'User updated successfully.');
     }
 
     public function destroy(Request $request, int $id): JsonResponse
@@ -156,6 +192,7 @@ class UserController extends Controller
             return $this->error('Organization owner account cannot be deleted.', 422);
         }
 
+        $user->roles()->detach();
         $user->delete();
 
         AuditLog::create([
@@ -170,5 +207,54 @@ class UserController extends Controller
         ]);
 
         return $this->success(null, 'User deleted successfully.');
+    }
+
+    public function getRoles(Request $request, int $id): JsonResponse
+    {
+        $authUser = $request->user();
+        if (! $authUser->is_owner && ! $authUser->hasPermission('users.view')) {
+            return $this->error('Unauthorized to view user roles.', 403);
+        }
+
+        $user = User::with('roles.permissions')->find($id);
+        if (! $user) {
+            return $this->error('User not found in your organization.', 404);
+        }
+
+        return $this->success($user->roles, 'User roles retrieved successfully.');
+    }
+
+    public function syncRoles(Request $request, int $id): JsonResponse
+    {
+        $authUser = $request->user();
+        if (! $authUser->is_owner && ! $authUser->hasPermission('users.update') && ! $authUser->hasPermission('roles.manage')) {
+            return $this->error('Unauthorized to manage user roles.', 403);
+        }
+
+        $user = User::find($id);
+        if (! $user) {
+            return $this->error('User not found in your organization.', 404);
+        }
+
+        $validated = $request->validate([
+            'roles' => ['present', 'array'],
+            'roles.*' => ['exists:roles,id'],
+        ]);
+
+        $user->roles()->sync($validated['roles']);
+
+        AuditLog::create([
+            'organization_id' => TenantContext::getTenantId(),
+            'user_id' => $authUser->id,
+            'action' => 'user.roles.update',
+            'subject_type' => User::class,
+            'subject_id' => $user->id,
+            'metadata' => ['assigned_roles' => $validated['roles']],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
+        return $this->success($user->load('roles.permissions'), 'User roles updated successfully.');
     }
 }

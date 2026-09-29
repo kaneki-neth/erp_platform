@@ -81,4 +81,29 @@ class TenantIsolationTest extends TestCase
         $this->assertFalse($globalModules['pos']['is_enabled']);
         $this->assertTrue($globalModules['crm']['is_enabled']);
     }
+
+    public function test_roles_are_isolated_per_tenant(): void
+    {
+        $acmeUser = User::withoutGlobalScopes()->where('email', 'admin@acme.com')->first();
+        $globalUser = User::withoutGlobalScopes()->where('email', 'admin@global.com')->first();
+
+        // Global user creates a custom role
+        $globalRole = \App\Models\Role::create([
+            'organization_id' => $globalUser->organization_id,
+            'name' => 'Secret Global Role',
+            'slug' => 'secret-global-role',
+            'is_system' => false,
+        ]);
+
+        // Acme user cannot see the global role in list
+        $response = $this->actingAs($acmeUser)->getJson('/api/v1/roles');
+        $response->assertStatus(200);
+        $roleNames = collect($response->json('data'))->pluck('name');
+        $this->assertFalse($roleNames->contains('Secret Global Role'));
+
+        // Acme user cannot access or update global role by ID
+        $this->actingAs($acmeUser)->getJson("/api/v1/roles/{$globalRole->id}")->assertStatus(404);
+        $this->actingAs($acmeUser)->putJson("/api/v1/roles/{$globalRole->id}", ['name' => 'Hijacked'])->assertStatus(404);
+    }
 }
+

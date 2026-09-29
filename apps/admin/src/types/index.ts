@@ -24,6 +24,8 @@ export interface Role {
   slug: string;
   description?: string | null;
   is_system: boolean;
+  users_count?: number;
+  permissions_count?: number;
   permissions?: Permission[];
 }
 

@@ -7,7 +7,9 @@ import { DashboardLayout } from './layouts/DashboardLayout';
 import { LoginPage } from './pages/auth/LoginPage';
 import { DashboardOverview } from './pages/dashboard/DashboardOverview';
 import { UsersPage } from './pages/users/UsersPage';
+import { RolesPage } from './pages/roles/RolesPage';
 import { ModulesPage } from './pages/modules/ModulesPage';
+import { AccessDeniedPage } from './pages/error/AccessDeniedPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,7 +35,9 @@ export const App: React.FC = () => {
               <Route element={<DashboardLayout />}>
                 <Route path="/" element={<DashboardOverview />} />
                 <Route path="/users" element={<UsersPage />} />
+                <Route path="/roles" element={<RolesPage />} />
                 <Route path="/modules" element={<ModulesPage />} />
+                <Route path="/access-denied" element={<AccessDeniedPage />} />
               </Route>
             </Route>
 

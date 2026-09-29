@@ -1,11 +1,11 @@
 # Business Management Platform (Modular ERP)
 
-[![Phase 0: Foundation](https://img.shields.io/badge/Phase-0%20Foundation-emerald.svg)](#current-project-phase)
+[![Phase 1: IAM](https://img.shields.io/badge/Phase-1%20IAM%20Ready-emerald.svg)](#current-project-phase)
 [![Architecture: Modular Monolith](https://img.shields.io/badge/Architecture-Modular%20Monolith-blue.svg)](#architecture)
 [![Backend: Laravel 11 API](https://img.shields.io/badge/Backend-Laravel%2011%20API-red.svg)](#technology-stack)
 [![Frontend: React + Vite + TS](https://img.shields.io/badge/Frontend-React%20%2B%20TypeScript-cyan.svg)](#technology-stack)
 
-> **Notice**: This repository is currently in **Phase 0 (Project Foundation & Architecture)**. Business modules such as POS, Inventory, and Accounting are not yet implemented and belong to subsequent phases.
+> **Notice**: This repository has completed **Phase 1 (Identity & Access Management)**. Business modules such as POS, Inventory, and Accounting belong to subsequent phases.
 
 ---
 
@@ -16,6 +16,7 @@ The platform uses a **Modular Monolith + API-First Architecture**:
 - **Decoupled Client & Server**: The Laravel backend (`apps/api`) acts as the single authoritative API server. The React Admin web application (`apps/admin`) and future clients (e.g., React Native Mobile POS) communicate strictly over JSON REST endpoints (`/api/v1/...`).
 - **Single-Database Multi-Tenancy**: Organizations are isolated at the database level using automatic tenant scoping (`organization_id`). Cross-tenant access is prohibited and verified with automated test suites.
 - **Dynamic Module Activation**: The platform core dynamically registers and enables modules per organization tenant without modifying core code.
+- **Centralized IAM**: Centralized user directory, configurable role and permission assignments, status validation, and audit logging.
 
 ```
                     ┌───────────────────────┐
@@ -24,7 +25,7 @@ The platform uses a **Modular Monolith + API-First Architecture**:
                     │                       │
                     │ Authentication        │
                     │ Organizations         │
-                    │ Users / Roles         │
+                    │ Users / Roles / Perms │
                     │ Tenant Isolation      │
                     │ Module Registry       │
                     └───────────┬───────────┘
@@ -48,7 +49,7 @@ ERP/
 ├── apps/
 │   ├── api/                    # Laravel 11 Headless REST API
 │   │   ├── app/
-│   │   │   ├── Http/Controllers/Api/V1/ # Auth, Orgs, Users, Roles, Modules
+│   │   │   ├── Http/Controllers/Api/V1/ # Auth, Orgs, Users, Roles, Permissions, Modules
 │   │   │   ├── Models/         # Organization, User, Role, Permission, Module, AuditLog
 │   │   │   ├── Scopes/         # TenantScope
 │   │   │   ├── Services/       # TenantContext
@@ -60,7 +61,7 @@ ERP/
 │       │   ├── api/            # API Client (Axios interceptors, endpoints)
 │       │   ├── context/        # AuthContext Provider
 │       │   ├── layouts/        # Dashboard Shell & Navigation
-│       │   ├── pages/          # Login, Dashboard Overview, Users, Modules
+│       │   ├── pages/          # Login, Dashboard, Users, Roles, Modules, Access Denied
 │       │   └── routes/         # Protected Routes
 │       └── ...
 │
@@ -70,6 +71,7 @@ ERP/
 │   └── ai/                     # AI Assistant Guidelines & Guardrails
 │
 ├── .gitignore
+├── PHASE 1 Implementation.md
 ├── PROJECT FOUNDATION & ARCHITECTURE.md
 └── README.md
 ```
@@ -119,6 +121,7 @@ npm run build
 
 ## 📖 Documentation Index
 - [Architecture Overview](file:///C:/Users/Nikko/Herd/ERP/docs/architecture/overview.md)
+- [IAM Architecture](file:///C:/Users/Nikko/Herd/ERP/docs/architecture/iam-architecture.md)
 - [API Architecture](file:///C:/Users/Nikko/Herd/ERP/docs/architecture/api-architecture.md)
 - [Multi-Tenancy](file:///C:/Users/Nikko/Herd/ERP/docs/architecture/multi-tenancy.md)
 - [Modular Architecture](file:///C:/Users/Nikko/Herd/ERP/docs/architecture/modular-architecture.md)

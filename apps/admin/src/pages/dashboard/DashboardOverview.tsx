@@ -17,7 +17,7 @@ export const DashboardOverview: React.FC = () => {
 
   const { data: usersData, isLoading: isUsersLoading } = useQuery({
     queryKey: ['users-list'],
-    queryFn: () => userApi.getUsers(1, 5),
+    queryFn: () => userApi.getUsers({ page: 1, perPage: 5 }),
   });
 
   const { data: modules, isLoading: isModulesLoading } = useQuery({

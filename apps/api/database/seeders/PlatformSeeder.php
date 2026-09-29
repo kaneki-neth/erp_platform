@@ -86,7 +86,13 @@ class PlatformSeeder extends Seeder
             
             // Roles
             ['slug' => 'roles.view', 'name' => 'View Roles', 'module_key' => 'core', 'description' => 'View available access roles'],
-            ['slug' => 'roles.manage', 'name' => 'Manage Roles', 'module_key' => 'core', 'description' => 'Create and customize role permissions'],
+            ['slug' => 'roles.create', 'name' => 'Create Roles', 'module_key' => 'core', 'description' => 'Create new organization roles'],
+            ['slug' => 'roles.update', 'name' => 'Update Roles', 'module_key' => 'core', 'description' => 'Modify role details and permissions'],
+            ['slug' => 'roles.delete', 'name' => 'Delete Roles', 'module_key' => 'core', 'description' => 'Remove custom organization roles'],
+            ['slug' => 'roles.manage', 'name' => 'Manage Roles', 'module_key' => 'core', 'description' => 'Full control over role permissions and assignments'],
+
+            // Permissions
+            ['slug' => 'permissions.view', 'name' => 'View Permissions', 'module_key' => 'core', 'description' => 'View available platform permissions list'],
 
             // Modules
             ['slug' => 'modules.view', 'name' => 'View Modules', 'module_key' => 'core', 'description' => 'View enabled organization modules'],

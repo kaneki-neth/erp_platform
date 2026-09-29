@@ -4,21 +4,30 @@
 All backend endpoints are prefixed with the API version:
 `/api/v1/...`
 
-### Example Endpoints
-- `POST /api/v1/auth/login`
-- `POST /api/v1/auth/logout`
-- `GET /api/v1/auth/me`
-- `GET /api/v1/organizations/current`
+### IAM & Auth Endpoints
+- `POST  /api/v1/auth/login`
+- `POST  /api/v1/auth/logout`
+- `GET   /api/v1/auth/me`
+- `GET   /api/v1/organizations/current`
 - `PATCH /api/v1/organizations/current`
-- `GET /api/v1/users`
-- `POST /api/v1/users`
-- `GET /api/v1/users/{id}`
-- `PUT /api/v1/users/{id}`
+- `GET   /api/v1/users` (supports `search`, `status`, `role_id`, `per_page`, `page`)
+- `POST  /api/v1/users`
+- `GET   /api/v1/users/{id}`
+- `PUT   /api/v1/users/{id}`
 - `DELETE /api/v1/users/{id}`
-- `GET /api/v1/roles`
-- `GET /api/v1/permissions`
-- `GET /api/v1/modules`
-- `POST /api/v1/modules/{key}/toggle`
+- `GET   /api/v1/users/{id}/roles`
+- `PUT   /api/v1/users/{id}/roles`
+- `GET   /api/v1/roles` (supports `search`)
+- `POST  /api/v1/roles`
+- `GET   /api/v1/roles/{id}`
+- `PUT   /api/v1/roles/{id}`
+- `DELETE /api/v1/roles/{id}`
+- `GET   /api/v1/roles/{id}/permissions`
+- `PUT   /api/v1/roles/{id}/permissions`
+- `GET   /api/v1/permissions` (supports `module_key`, `search`, `grouped=true`)
+- `GET   /api/v1/permissions/{id}`
+- `GET   /api/v1/modules`
+- `POST  /api/v1/modules/{key}/toggle`
 
 ## 2. Standardized Response Format
 Every response returns a structured JSON payload:
